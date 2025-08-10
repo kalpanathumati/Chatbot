@@ -5,7 +5,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 
-# Load .env and set API key
+# Load environment variables
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
@@ -15,14 +15,12 @@ if not api_key:
 
 # Configure Gemini
 genai.configure(api_key=api_key)
+model = genai.GenerativeModel("models/gemini-1.5-flash")
 
-# Initialize Gemini 1.5 Flash
-model = genai.GenerativeModel('models/gemini-1.5-flash')
-
-# Streamlit config
+# Page config
 st.set_page_config(page_title="Gemini Chatbot", layout="centered")
 
-# CSS
+# CSS for message bubbles
 st.markdown("""
     <style>
     .chat-bubble {
@@ -48,33 +46,45 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Title
 st.title("💬 Gemini AI Chatbot")
 
-# Chat history
+# Initialize chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Message input workaround
-input_key = "input_" + str(len(st.session_state.chat_history))  # unique key for each turn
-user_input = st.text_input("You:", key=input_key)
+# Initialize submitted flag
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
 
-# Process user input
-if user_input:
-    # Add user message
-    st.session_state.chat_history.append(("user", user_input))
+# Input form
+with st.form("chat_form", clear_on_submit=True):
+    user_input = st.text_input("You:", "")
+    submitted = st.form_submit_button("Send")
 
-    # Generate response
-    try:
-        response = model.generate_content(user_input)
-        reply = response.text
-    except Exception as e:
-        reply = f"❌ Error: {str(e)}"
+if submitted:
+    st.session_state.submitted = True
+    st.session_state.last_input = user_input
 
-    # Add bot message
-    st.session_state.chat_history.append(("bot", reply))
+# Handle submission
+if st.session_state.get("submitted", False):
+    user_input = st.session_state.get("last_input", "")
+    if user_input:
+        # Add user message
+        st.session_state.chat_history.append(("user", user_input))
 
-    # Rerun to show latest chat and reset input
-    st.experimental_rerun()
+        try:
+            # Generate bot response
+            response = model.generate_content(user_input)
+            reply = response.text
+        except Exception as e:
+            reply = f"❌ Error: {str(e)}"
+
+        # Add bot message
+        st.session_state.chat_history.append(("bot", reply))
+
+    # Reset the flag
+    st.session_state.submitted = False
 
 # Display chat history
 for sender, message in st.session_state.chat_history:
