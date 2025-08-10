@@ -5,7 +5,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env
+# Load .env and set API key
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
@@ -13,16 +13,16 @@ if not api_key:
     st.error("❌ GOOGLE_API_KEY not found in .env file")
     st.stop()
 
-# Configure Gemini API
+# Configure Gemini
 genai.configure(api_key=api_key)
 
-# Initialize Gemini 1.5 Flash model
+# Initialize Gemini 1.5 Flash
 model = genai.GenerativeModel('models/gemini-1.5-flash')
 
-# Streamlit page config
+# Streamlit config
 st.set_page_config(page_title="Gemini Chatbot", layout="centered")
 
-# Custom CSS styling
+# CSS
 st.markdown("""
     <style>
     .chat-bubble {
@@ -48,35 +48,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# App title
 st.title("💬 Gemini AI Chatbot")
 
-# Chat history state
+# Chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Text input (not inside a form now)
-user_input = st.text_input("You:", key="user_input")
+# Message input workaround
+input_key = "input_" + str(len(st.session_state.chat_history))  # unique key for each turn
+user_input = st.text_input("You:", key=input_key)
 
-# Process and generate response
+# Process user input
 if user_input:
-    # Append user message
+    # Add user message
     st.session_state.chat_history.append(("user", user_input))
 
-    # Generate response from Gemini
+    # Generate response
     try:
         response = model.generate_content(user_input)
         reply = response.text
     except Exception as e:
         reply = f"❌ Error: {str(e)}"
 
-    # Append bot reply
+    # Add bot message
     st.session_state.chat_history.append(("bot", reply))
 
-    # Clear the input manually
-    st.session_state.user_input = ""
-
-    # Rerun to refresh UI
+    # Rerun to show latest chat and reset input
     st.experimental_rerun()
 
 # Display chat history
