@@ -13,6 +13,7 @@ if not api_key:
     st.error("❌ GOOGLE_API_KEY not found in .env file")
     st.stop()
 
+# Configure Gemini API
 genai.configure(api_key=api_key)
 
 # Initialize Gemini 1.5 Flash model
@@ -47,36 +48,38 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Title
+# App title
 st.title("💬 Gemini AI Chatbot")
 
-# Session state for chat history
+# Chat history state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Display chat history
-for sender, message in st.session_state.chat_history:
-    css_class = "user" if sender == "user" else "bot"
-    st.markdown(f'<div class="chat-bubble {css_class}">{message}</div>', unsafe_allow_html=True)
+# Text input (not inside a form now)
+user_input = st.text_input("You:", key="user_input")
 
-# Input form
-with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("You:")
-    submit = st.form_submit_button("Send")
-
-# Process input on submit
-if submit and user_input:
-    # Append user input
+# Process and generate response
+if user_input:
+    # Append user message
     st.session_state.chat_history.append(("user", user_input))
 
-    # Get Gemini response
+    # Generate response from Gemini
     try:
         response = model.generate_content(user_input)
         reply = response.text
     except Exception as e:
         reply = f"❌ Error: {str(e)}"
 
-    # Append response
+    # Append bot reply
     st.session_state.chat_history.append(("bot", reply))
 
-    # Rerun is no longer needed because form handles update
+    # Clear the input manually
+    st.session_state.user_input = ""
+
+    # Rerun to refresh UI
+    st.experimental_rerun()
+
+# Display chat history
+for sender, message in st.session_state.chat_history:
+    css_class = "user" if sender == "user" else "bot"
+    st.markdown(f'<div class="chat-bubble {css_class}">{message}</div>', unsafe_allow_html=True)
